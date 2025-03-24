@@ -1,0 +1,37 @@
+name: Windows Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        working-directory: ./FlutterPluginFederated/siprix_voip_sdk/example
+        run: flutter pub get
+
+      - name: Build Windows
+        working-directory: ./FlutterPluginFederated/siprix_voip_sdk/example
+        run: flutter build windows
+
+      - name: Upload Windows Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-build
+          path: FlutterPluginFederated/siprix_voip_sdk/example/build/windows/runner/Release/
