@@ -10,8 +10,8 @@ import 'package:siprix_voip_sdk/devices_model.dart';
 import 'package:siprix_voip_sdk/logs_model.dart';
 import 'package:siprix_voip_sdk/video.dart';
 
-import 'call_add.dart';
 import 'calls_model_app.dart';
+import 'accouns_model_app.dart';
 import 'main.dart';
 import 'dialer_widget.dart';
 
@@ -58,12 +58,23 @@ class _CallsListPageState extends State<CallsListPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 DialerWidget(
-                  onCallPressed: (String number) {
-                    Navigator.pushNamed(
-                      context,
-                      CallAddPage.routeName,
-                      arguments: number,
-                    );
+                  onCallPressed: (String number, bool isVideo) {
+                    final accounts = context.read<AppAccountsModel>();
+                    if (accounts.selAccountId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No account selected')),
+                      );
+                      return;
+                    }
+                    CallDestination dest = CallDestination(
+                        number, accounts.selAccountId!, isVideo);
+                    context
+                        .read<AppCallsModel>()
+                        .invite(dest)
+                        .catchError((err) {
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text('$err')));
+                    });
                   },
                 ),
               ],
@@ -530,7 +541,45 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
   }
 
   void _showAddCallPage() {
-    Navigator.of(context).pushNamed(CallAddPage.routeName);
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DialerWidget(
+                  onCallPressed: (String number, bool isVideo) {
+                    final accounts = context.read<AppAccountsModel>();
+                    if (accounts.selAccountId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No account selected')),
+                      );
+                      return;
+                    }
+                    CallDestination dest = CallDestination(
+                        number, accounts.selAccountId!, isVideo);
+                    context
+                        .read<AppCallsModel>()
+                        .invite(dest)
+                        .catchError((err) {
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text('$err')));
+                    });
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _toggleSendDtmfMode() {

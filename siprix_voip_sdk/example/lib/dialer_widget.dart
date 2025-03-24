@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class DialerWidget extends StatefulWidget {
-  final Function(String) onCallPressed;
+  final Function(String, bool) onCallPressed;
 
   const DialerWidget({
     Key? key,
@@ -132,7 +132,8 @@ class _DialerWidgetState extends State<DialerWidget> {
                 Colors.red.shade400,
                 _onDeletePressed,
               ),
-              _buildCallButton(),
+              _buildCallButton(false), // Audio call
+              _buildCallButton(true), // Video call
             ],
           ),
         ],
@@ -207,13 +208,13 @@ class _DialerWidgetState extends State<DialerWidget> {
     );
   }
 
-  Widget _buildCallButton() {
+  Widget _buildCallButton(bool isVideo) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
           if (_numberController.text.isNotEmpty) {
-            widget.onCallPressed(_numberController.text);
+            widget.onCallPressed(_numberController.text, isVideo);
           }
         },
         borderRadius: BorderRadius.circular(16),
@@ -235,8 +236,8 @@ class _DialerWidgetState extends State<DialerWidget> {
               ),
             ],
           ),
-          child: const Icon(
-            Icons.call,
+          child: Icon(
+            isVideo ? Icons.videocam : Icons.call,
             color: Colors.white,
             size: 28,
           ),

@@ -23,7 +23,6 @@ import 'calls_model_app.dart';
 import 'subscr_model_app.dart';
 
 import 'account_add.dart';
-import 'call_add.dart';
 import 'subscr_add.dart';
 import 'settings.dart';
 import 'home.dart';
@@ -197,8 +196,6 @@ class _MyAppState extends State<MyApp> {
 
     return MaterialApp(
       routes: <String, WidgetBuilder>{
-        CallAddPage.routeName: (BuildContext context) =>
-            const CallAddPage(true),
         SettingsPage.routeName: (BuildContext context) => const SettingsPage(),
         AccountPage.routeName: (BuildContext context) => const AccountPage(),
         SubscrAddPage.routeName: (BuildContext context) =>
