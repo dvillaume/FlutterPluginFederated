@@ -25,16 +25,33 @@ class AccountPageState extends State<AccountPage> {
   AccountModel _account = AccountModel();
   String _errText = "";
 
+  // Couleurs de l'application
+  static const Color primaryColor = Color(0xFF2A3990);
+  static const Color accentColor = Color(0xFF4481EB);
+  static const Color backgroundColor = Color(0xFFF5F7FA);
+  static const Color cardColor = Colors.white;
+  static const Color textColor = Color(0xFF333333);
+  static const Color subtitleColor = Color(0xFF677294);
+
   // Tracking expanded sections
   bool _isTransportExpanded = false;
   bool _isProxyExpanded = false;
   bool _isSecurityExpanded = false;
   bool _isAdvancedExpanded = false;
+  bool _isCodecsExpanded = false;
+
+  // Liste ordonnée des codecs audio
+  List<Codec> _audioCodecs = [];
+  // Liste ordonnée des codecs vidéo
+  List<Codec> _videoCodecs = [];
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _account = ModalRoute.of(context)!.settings.arguments as AccountModel;
+    // Initialiser les listes de codecs
+    _audioCodecs = Codec.getCodecsList(_account.aCodecs);
+    _videoCodecs = Codec.getCodecsList(_account.vCodecs, audio: false);
   }
 
   @override
@@ -304,8 +321,8 @@ class AccountPageState extends State<AccountPage> {
 
                 // Advanced Section
                 _buildExpandableCard(
-                  title: "Avancé",
-                  icon: Icons.tune_outlined,
+                  title: "Paramètres avancés",
+                  icon: Icons.settings_outlined,
                   isExpanded: _isAdvancedExpanded,
                   onTap: () => setState(
                       () => _isAdvancedExpanded = !_isAdvancedExpanded),
@@ -331,6 +348,23 @@ class AccountPageState extends State<AccountPage> {
                       },
                       initialValue: _account.keepAliveTime?.toString(),
                     ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Codecs Section
+                _buildExpandableCard(
+                  title: "Codecs",
+                  icon: Icons.audiotrack_outlined,
+                  isExpanded: _isCodecsExpanded,
+                  onTap: () =>
+                      setState(() => _isCodecsExpanded = !_isCodecsExpanded),
+                  children: [
+                    const SizedBox(height: 8),
+                    _buildCodecsSection(true), // Audio codecs
+                    const SizedBox(height: 16),
+                    _buildCodecsSection(false), // Video codecs
                   ],
                 ),
 
@@ -778,6 +812,77 @@ class AccountPageState extends State<AccountPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCodecsSection(bool isAudio) {
+    final List<Codec> codecs = isAudio ? _audioCodecs : _videoCodecs;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isAudio ? 'Codecs Audio' : 'Codecs Vidéo',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ReorderableListView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          children: [
+            for (int index = 0; index < codecs.length; index++)
+              ListTile(
+                key: Key('$index'),
+                title: Text(Codec.name(codecs[index].id)),
+                leading: Icon(
+                  isAudio ? Icons.audiotrack : Icons.videocam,
+                  color: primaryColor,
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Switch(
+                      value: codecs[index].selected,
+                      onChanged: (bool value) {
+                        setState(() {
+                          codecs[index].selected = value;
+                          if (isAudio) {
+                            _account.aCodecs =
+                                Codec.getSelectedCodecsIds(_audioCodecs);
+                          } else {
+                            _account.vCodecs =
+                                Codec.getSelectedCodecsIds(_videoCodecs);
+                          }
+                        });
+                      },
+                      activeColor: primaryColor,
+                    ),
+                    const Icon(Icons.drag_handle),
+                  ],
+                ),
+              ),
+          ],
+          onReorder: (int oldIndex, int newIndex) {
+            setState(() {
+              if (oldIndex < newIndex) {
+                newIndex -= 1;
+              }
+              final Codec item = codecs.removeAt(oldIndex);
+              codecs.insert(newIndex, item);
+
+              if (isAudio) {
+                _account.aCodecs = Codec.getSelectedCodecsIds(_audioCodecs);
+              } else {
+                _account.vCodecs = Codec.getSelectedCodecsIds(_videoCodecs);
+              }
+            });
+          },
+        ),
+      ],
     );
   }
 }

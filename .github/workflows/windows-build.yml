@@ -23,15 +23,15 @@ jobs:
         run: flutter config --enable-windows-desktop
 
       - name: Install dependencies
-        working-directory: ./siprix_voip_sdk/example
+        working-directory: ./FlutterPluginFederated/siprix_voip_sdk/example
         run: flutter pub get
 
       - name: Build Windows
-        working-directory: ./siprix_voip_sdk/example
+        working-directory: ./FlutterPluginFederated/siprix_voip_sdk/example
         run: flutter build windows
 
       - name: Upload Windows Build
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: siprix_voip_sdk/example/build/windows/runner/Release/
+          path: FlutterPluginFederated/siprix_voip_sdk/example/build/windows/x64/runner/Release/
