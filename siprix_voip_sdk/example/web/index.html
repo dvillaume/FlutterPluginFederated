@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Octovia - Solution VoIP Professionnelle">
+  <meta name="keywords" content="VoIP, téléphonie, communication, appels, SIP">
+  <meta name="author" content="Octovia">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Octovia">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Octovia - Solution VoIP Professionnelle</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      background-color: #F5F7FA;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .logo {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2A3990, #4481EB);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 20px rgba(42, 57, 144, 0.2);
+    }
+
+    .logo-icon {
+      color: white;
+      font-size: 50px;
+    }
+
+    h1 {
+      color: #2A3990;
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      color: #677294;
+      font-size: 16px;
+      margin-bottom: 30px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(42, 57, 144, 0.1);
+      border-radius: 50%;
+      border-top-color: #2A3990;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+
+  <script>
+    // The value below is injected by flutter build, do not touch.
+    var serviceWorkerVersion = null;
+  </script>
+
+  <!-- This script adds the flutter initialization JS code -->
+  <script src="flutter.js" defer></script>
+</head>
+<body>
+  <div id="loading" class="loading">
+    <div class="logo">
+      <div class="logo-icon">🎧</div>
+    </div>
+    <h1>Octovia</h1>
+    <p>Solution VoIP Professionnelle</p>
+    <div class="spinner"></div>
+  </div>
+
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Download main.dart.js
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            appRunner.runApp();
+
+            // Masquer l'écran de chargement une fois que Flutter est prêt
+            window.addEventListener('flutter-first-frame', function() {
+              var loadingElement = document.getElementById('loading');
+              if (loadingElement) {
+                loadingElement.style.display = 'none';
+              }
+            });
+          }).catch(function(error) {
+            console.error('Erreur lors de l\'initialisation du moteur:', error);
+            var loadingElement = document.getElementById('loading');
+            if (loadingElement) {
+              loadingElement.innerHTML = '<div style="color: red;">Erreur lors du chargement de l\'application</div>';
+            }
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
