@@ -264,13 +264,11 @@ class _MyAppState extends State<MyApp> {
       String accJsonStr = prefs.getString('accounts') ?? '';
       String subsJsonStr = prefs.getString('subscriptions') ?? '';
       String cdrsJsonStr = prefs.getString('cdrs') ?? '';
-      String msgsJsonStr = prefs.getString('msgs') ?? '';
-      _loadModels(accJsonStr, cdrsJsonStr, subsJsonStr, msgsJsonStr);
+      _loadModels(accJsonStr, cdrsJsonStr, subsJsonStr);
     });
   }
 
-  void _loadModels(String accJsonStr, String cdrsJsonStr, String subsJsonStr,
-      String msgsJsonStr) {
+  void _loadModels(String accJsonStr, String cdrsJsonStr, String subsJsonStr) {
     //Accounts
     AppAccountsModel accsModel = context.read<AppAccountsModel>();
     accsModel.onSaveChanges = _saveAccountChanges;
@@ -278,9 +276,6 @@ class _MyAppState extends State<MyApp> {
     //Subscriptions
     SubscriptionsModel subs = context.read<SubscriptionsModel>();
     subs.onSaveChanges = _saveSubscriptionChanges;
-
-    MessagesModel msgs = context.read<MessagesModel>();
-    msgs.onSaveChanges = _saveMessagesChanges;
 
     //CDRs (Call Details Records)
     CdrsModel cdrs = context.read<CdrsModel>();
@@ -290,7 +285,6 @@ class _MyAppState extends State<MyApp> {
     accsModel.loadFromJson(accJsonStr).then((val) {
       subs.loadFromJson(subsJsonStr);
       cdrs.loadFromJson(cdrsJsonStr);
-      msgs.loadFromJson(msgsJsonStr);
     });
 
     //Assign contact name resolver
@@ -315,12 +309,6 @@ class _MyAppState extends State<MyApp> {
   void _saveSubscriptionChanges(String subscrJsonStr) {
     SharedPreferences.getInstance().then((prefs) {
       prefs.setString('subscriptions', subscrJsonStr);
-    });
-  }
-
-  void _saveMessagesChanges(String msgsJsonStr) {
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setString('msgs', msgsJsonStr);
     });
   }
 
