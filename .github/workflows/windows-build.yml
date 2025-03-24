@@ -36,4 +36,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: siprix_voip_sdk/example/build/windows/runner/Release/
+          path: siprix_voip_sdk/example/build/windows/x64/runner/Release/
+          if-no-files-found: warn
+          compression-level: 6
+          overwrite: false
+          include-hidden-files: false

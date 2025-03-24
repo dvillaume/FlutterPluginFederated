@@ -282,7 +282,10 @@ class _CallsListPageState extends State<CallsListPage>
 
     CallDestination dest =
         CallDestination(cdr.remoteExt, accounts.selAccountId!, cdr.hasVideo);
-    context.read<AppCallsModel>().invite(dest).catchError((err) {
+    context.read<AppCallsModel>().invite(dest).then((_) {
+      // Basculer vers l'onglet des appels en cours
+      _tabController.animateTo(0);
+    }).catchError((err) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('$err'),
@@ -372,22 +375,35 @@ class _CallsListPageState extends State<CallsListPage>
       selected: isSwitched,
       selectedColor: Colors.black,
       selectedTileColor: Theme.of(context).secondaryHeaderColor,
-      leading: Icon(call.isIncoming
-          ? Icons.call_received_rounded
-          : Icons.call_made_rounded),
+      leading: Icon(
+        call.isIncoming ? Icons.call_received_rounded : Icons.call_made_rounded,
+        size: 20,
+      ),
       title: Text(call.nameAndExt,
           style: TextStyle(
-              fontWeight: (isSwitched ? FontWeight.bold : FontWeight.normal)),
+            fontWeight: (isSwitched ? FontWeight.bold : FontWeight.normal),
+            fontSize: 14,
+          ),
           overflow: TextOverflow.ellipsis),
-      subtitle: Text(call.state.name),
+      subtitle: Text(
+        call.state.name,
+        style: const TextStyle(fontSize: 12),
+      ),
       trailing: isSwitched
           ? null
           : IconButton(
-              icon: const Icon(Icons.swap_calls_rounded),
+              icon: const Icon(Icons.swap_calls_rounded, size: 20),
               onPressed: () {
                 calls.switchToCall(call.myCallId);
-              }),
+              },
+              constraints: const BoxConstraints(
+                minWidth: 32,
+                minHeight: 32,
+              ),
+            ),
       dense: true,
+      visualDensity: const VisualDensity(vertical: -4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }
 
@@ -564,24 +580,31 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
         builder: (BuildContext context, Widget? child) {
           return Stack(children: [
             ..._buildVideoControls(),
-            Center(
-                child: Column(children: [
-              const Spacer(),
-              _buildCallStateText(),
-              _buildFromToText(),
-              _buildCallDuration(),
-              const Spacer(),
-              ..._buildCallControls(),
-              const Spacer(),
-              if (widget.myCall.state == CallState.ringing)
-                _buildIncomingCallAcceptReject(),
-              if (widget.myCall.state != CallState.ringing)
-                _buildHangupButton(),
-              const Spacer(),
-            ]))
+            SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildCallStateText(),
+                    const SizedBox(height: 8),
+                    _buildFromToText(),
+                    const SizedBox(height: 8),
+                    _buildCallDuration(),
+                    const SizedBox(height: 16),
+                    ..._buildCallControls(),
+                    const SizedBox(height: 16),
+                    if (widget.myCall.state == CallState.ringing)
+                      _buildIncomingCallAcceptReject()
+                    else
+                      _buildHangupButton(),
+                  ],
+                ),
+              ),
+            ),
           ]);
         });
-  } //build
+  }
 
   Text _buildCallStateText() {
     return Text(widget.myCall.nameAndExt,
