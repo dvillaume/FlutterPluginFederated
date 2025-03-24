@@ -1,22 +1,20 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-
 import 'package:shared_preferences/shared_preferences.dart';
-
-//import 'package:firebase_core/firebase_core.dart';
-//import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:siprix_voip_sdk/accounts_model.dart';
-import 'package:siprix_voip_sdk/messages_model.dart';
-import 'package:siprix_voip_sdk/network_model.dart';
+import 'package:siprix_voip_sdk/calls_model.dart';
 import 'package:siprix_voip_sdk/cdrs_model.dart';
 import 'package:siprix_voip_sdk/devices_model.dart';
 import 'package:siprix_voip_sdk/logs_model.dart';
 import 'package:siprix_voip_sdk/subscriptions_model.dart';
 import 'package:siprix_voip_sdk/siprix_voip_sdk.dart';
+import 'package:siprix_voip_sdk/network_model.dart';
 
 import 'accouns_model_app.dart';
 import 'calls_model_app.dart';
@@ -49,7 +47,6 @@ void main() async {
   NetworkModel networkModel = NetworkModel(logsModel); //Network state details
   AppAccountsModel accountsModel =
       AppAccountsModel(logsModel); //List of accounts
-  MessagesModel messagesModel = MessagesModel(accountsModel, logsModel);
   AppCallsModel callsModel =
       AppCallsModel(accountsModel, logsModel, cdrsModel); //List of calls
   SubscriptionsModel subscrModel = SubscriptionsModel<AppBlfSubscrModel>(
@@ -63,9 +60,8 @@ void main() async {
       ChangeNotifierProvider(create: (context) => accountsModel),
       ChangeNotifierProvider(create: (context) => networkModel),
       ChangeNotifierProvider(create: (context) => devicesModel),
-      ChangeNotifierProvider(create: (context) => messagesModel),
-      ChangeNotifierProvider(create: (context) => subscrModel),
       ChangeNotifierProvider(create: (context) => callsModel),
+      ChangeNotifierProvider(create: (context) => subscrModel),
       ChangeNotifierProvider(create: (context) => cdrsModel),
       ChangeNotifierProvider(create: (context) => logsModel),
     ],

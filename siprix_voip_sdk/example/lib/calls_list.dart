@@ -9,6 +9,7 @@ import 'package:siprix_voip_sdk/calls_model.dart';
 import 'package:siprix_voip_sdk/devices_model.dart';
 import 'package:siprix_voip_sdk/logs_model.dart';
 import 'package:siprix_voip_sdk/video.dart';
+import 'package:siprix_voip_sdk/cdrs_model.dart';
 
 import 'calls_model_app.dart';
 import 'accouns_model_app.dart';
@@ -27,8 +28,22 @@ class CallsListPage extends StatefulWidget {
   State<CallsListPage> createState() => _CallsListPageState();
 }
 
-class _CallsListPageState extends State<CallsListPage> {
+class _CallsListPageState extends State<CallsListPage>
+    with SingleTickerProviderStateMixin {
   Timer? _callDurationTimer;
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   void _toggleDurationTimer(CallsModel calls) {
     if (calls.isEmpty) {
@@ -45,69 +60,309 @@ class _CallsListPageState extends State<CallsListPage> {
   @override
   Widget build(BuildContext context) {
     final calls = context.watch<AppCallsModel>();
+    final cdrs = context.watch<CdrsModel>();
     CallModel? switchedCall = calls.switchedCall();
     _toggleDurationTimer(calls);
 
-    if (calls.isEmpty) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF5F7FA),
-        body: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                DialerWidget(
-                  onCallPressed: (String number, bool isVideo) {
-                    final accounts = context.read<AppAccountsModel>();
-                    if (accounts.selAccountId == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('No account selected')),
-                      );
-                      return;
-                    }
-                    CallDestination dest = CallDestination(
-                        number, accounts.selAccountId!, isVideo);
-                    context
-                        .read<AppCallsModel>()
-                        .invite(dest)
-                        .catchError((err) {
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(SnackBar(content: Text('$err')));
-                    });
-                  },
-                ),
-              ],
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: Container(
+          color: Colors.white,
+          child: TabBar(
+            controller: _tabController,
+            labelColor: const Color(0xFF2A3990),
+            unselectedLabelColor: const Color(0xFF677294),
+            indicatorColor: const Color(0xFF2A3990),
+            tabs: const [
+              Tab(text: 'Appels en cours'),
+              Tab(text: 'Historique'),
+            ],
+          ),
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildCurrentCallsTab(calls, switchedCall),
+          _buildCallHistoryTab(cdrs),
+        ],
+      ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF2A3990), Color(0xFF4481EB)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF4481EB).withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _showAddCallPage,
+            borderRadius: BorderRadius.circular(30),
+            child: const Padding(
+              padding: EdgeInsets.all(16),
+              child: Icon(
+                Icons.add,
+                color: Colors.white,
+                size: 24,
+              ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCurrentCallsTab(AppCallsModel calls, CallModel? switchedCall) {
+    if (calls.isEmpty) {
+      return _buildEmptyCallsView();
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: Column(
+            children: [
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(0.0),
+                  itemCount: calls.length,
+                  scrollDirection: Axis.vertical,
+                  separatorBuilder: (BuildContext context, int index) =>
+                      const Divider(height: 1),
+                  itemBuilder: (BuildContext context, int index) {
+                    return ListenableBuilder(
+                        listenable: calls[index],
+                        builder: (BuildContext context, Widget? child) {
+                          return _callModelRowTile(calls, index);
+                        });
+                  },
+                ),
+              ),
+              const Divider(height: 1),
+              if (switchedCall != null)
+                Expanded(
+                    child: SwitchedCallWidget(switchedCall,
+                        key: ValueKey(switchedCall.myCallId))),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCallHistoryTab(CdrsModel cdrs) {
+    if (cdrs.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 160,
+              height: 160,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2A3990).withOpacity(0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A3990).withOpacity(0.05),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A3990).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    Icon(
+                      Icons.history,
+                      size: 48,
+                      color: const Color(0xFF2A3990).withOpacity(0.5),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            const Text(
+              "Aucun appel dans l'historique",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF333333),
+              ),
+            ),
+          ],
         ),
       );
     }
 
-    return Column(children: [
-      const Divider(height: 1),
-      ListView.separated(
-        shrinkWrap: true,
-        padding: const EdgeInsets.all(0.0),
-        itemCount: calls.length,
-        scrollDirection: Axis.vertical,
-        separatorBuilder: (BuildContext context, int index) =>
-            const Divider(height: 1),
-        itemBuilder: (BuildContext context, int index) {
-          return ListenableBuilder(
-              listenable: calls[index],
-              builder: (BuildContext context, Widget? child) {
-                return _callModelRowTile(calls, index);
-              });
-        },
+    return ListView.builder(
+      itemCount: cdrs.length,
+      itemBuilder: (context, index) {
+        final cdr = cdrs[index];
+        return ListTile(
+          leading: Icon(
+            cdr.incoming ? Icons.call_received : Icons.call_made,
+            color: cdr.connected ? Colors.green : Colors.red,
+          ),
+          title: Text(
+            cdr.displName.isEmpty ? cdr.remoteExt : cdr.displName,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(cdr.madeAtDate),
+              if (cdr.connected) Text('Durée: ${cdr.duration}'),
+            ],
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (cdr.hasVideo) const Icon(Icons.videocam),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.call),
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFF2A3990),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => _makeCallFromHistory(cdr),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _makeCallFromHistory(CdrModel cdr) {
+    final accounts = context.read<AppAccountsModel>();
+    if (accounts.selAccountId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Aucun compte sélectionné'),
+          backgroundColor: Color(0xFF2A3990),
+        ),
+      );
+      return;
+    }
+
+    CallDestination dest =
+        CallDestination(cdr.remoteExt, accounts.selAccountId!, cdr.hasVideo);
+    context.read<AppCallsModel>().invite(dest).catchError((err) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$err'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    });
+  }
+
+  Widget _buildEmptyCallsView() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 160,
+            height: 160,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2A3990).withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2A3990).withOpacity(0.05),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2A3990).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Icon(
+                    Icons.phone_outlined,
+                    size: 48,
+                    color: const Color(0xFF2A3990).withOpacity(0.5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+          const Text(
+            "Aucun appel en cours",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF333333),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            "Appuyez sur le bouton + pour\npasser un appel",
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF677294),
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
-      const Divider(height: 1),
-      if (switchedCall != null)
-        Expanded(
-            child: SwitchedCallWidget(switchedCall,
-                key: ValueKey(switchedCall.myCallId))),
-    ]);
-  } //build
+    );
+  }
 
   ListTile _callModelRowTile(CallsModel calls, int index) {
     final call = calls[index];
@@ -224,6 +479,48 @@ class _CallsListPageState extends State<CallsListPage> {
         ),
       );
     }
+  }
+
+  void _showAddCallPage() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DialerWidget(
+                  onCallPressed: (String number, bool isVideo) {
+                    final accounts = context.read<AppAccountsModel>();
+                    if (accounts.selAccountId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No account selected')),
+                      );
+                      return;
+                    }
+                    CallDestination dest = CallDestination(
+                        number, accounts.selAccountId!, isVideo);
+                    context
+                        .read<AppCallsModel>()
+                        .invite(dest)
+                        .catchError((err) {
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text('$err')));
+                    });
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 } //CallsPage
 
