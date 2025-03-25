@@ -1,0 +1,1 @@
+/Users/davidvillaume/Documents/local-dev/siprix2/siprix_voip_sdk/example/build/app/intermediates/cxx/RelWithDebInfo/3z643pj4/obj/arm64-v8a

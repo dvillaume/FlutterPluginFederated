@@ -1,0 +1,1 @@
+/Users/davidvillaume/Documents/local-dev/siprix2/siprix_voip_sdk/example/build/app/intermediates/cxx/Debug/1q525h4o/obj/armeabi-v7a

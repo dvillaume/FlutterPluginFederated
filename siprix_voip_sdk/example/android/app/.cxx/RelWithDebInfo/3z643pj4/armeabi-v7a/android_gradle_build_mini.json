@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "/Users/davidvillaume/Documents/local-dev/flutter/flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/davidvillaume/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/davidvillaume/Documents/local-dev/siprix2/siprix_voip_sdk/example/android/app/.cxx/RelWithDebInfo/3z643pj4/armeabi-v7a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/davidvillaume/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/davidvillaume/Documents/local-dev/siprix2/siprix_voip_sdk/example/android/app/.cxx/RelWithDebInfo/3z643pj4/armeabi-v7a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}

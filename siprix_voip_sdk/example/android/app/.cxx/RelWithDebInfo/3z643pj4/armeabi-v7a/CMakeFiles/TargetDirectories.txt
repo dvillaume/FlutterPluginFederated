@@ -1,0 +1,2 @@
+/Users/davidvillaume/Documents/local-dev/siprix2/siprix_voip_sdk/example/android/app/.cxx/RelWithDebInfo/3z643pj4/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/davidvillaume/Documents/local-dev/siprix2/siprix_voip_sdk/example/android/app/.cxx/RelWithDebInfo/3z643pj4/armeabi-v7a/CMakeFiles/rebuild_cache.dir
