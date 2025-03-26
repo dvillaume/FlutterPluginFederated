@@ -1,94 +1,97 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
-import 'models/identity_model.dart';
-import 'environment.dart';
-import 'services/api_service.dart';
+import 'services/identity_service.dart';
 import 'widgets/identity_dialog.dart';
+import 'environment.dart';
+import 'package:provider/provider.dart';
+import 'package:siprix_voip_sdk/accounts_model.dart';
+import 'package:siprix_voip_sdk/siprix_voip_sdk.dart';
+import 'package:siprix_voip_sdk/network_model.dart';
+import 'accouns_model_app.dart';
+import 'models/identity_model.dart';
 
 class AuthRepository extends ChangeNotifier {
   String? _token;
   String? _displayName;
   String? _avatarUrl;
 
+  String? get token => _token;
   String? get displayName => _displayName;
   String? get avatarUrl => _avatarUrl;
 
   Future<String?> login(
       String username, String password, BuildContext context) async {
-    final url =
-        '${Environment.SSO_URL}/realms/${Environment.REALM}/protocol/openid-connect/token';
-
-    Map<String, String> headers = {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Cookie': 'KEYCLOAK_LOCALE=fr_FR',
-    };
-
-    Map<String, String> data = {
-      'client_id': Environment.CLIENT_ID,
-      'client_secret': Environment.CLIENT_SECRET,
-      'username': username,
-      'password': password,
-      'grant_type': 'password',
-    };
-
     try {
-      print('Tentative de connexion à Keycloak...');
-      print('URL: $url');
-      print('Data: $data');
-
       final response = await http.post(
-        Uri.parse(url),
-        headers: headers,
-        body: data,
+        Uri.parse(
+            '${Environment.SSO_URL}/realms/${Environment.REALM}/protocol/openid-connect/token'),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Cookie': 'locale=fr',
+        },
+        body: {
+          'client_id': Environment.CLIENT_ID,
+          'client_secret': Environment.CLIENT_SECRET,
+          'username': username,
+          'password': password,
+          'grant_type': 'password',
+        },
       );
 
-      print('Réponse Keycloak - Statut: ${response.statusCode}');
-      print('Réponse Keycloak - Corps: ${response.body}');
+      print('URL de la requête: ${response.request?.url}');
+      print('Statut de la réponse: ${response.statusCode}');
+      print('Corps de la réponse: ${response.body}');
 
       if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        _token = responseData['access_token'] as String;
-        print('Access token obtenu: ${_token!.substring(0, 20)}...');
+        final data = jsonDecode(response.body);
+        _token = data['access_token'];
+        print('Token obtenu: ${_token?.substring(0, 20)}...');
 
-        // Récupérer les informations d'identité
-        if (_token != null && context.mounted) {
-          try {
-            print(
-                'Récupération des informations d\'identité avec access_token...');
-            final identity = await ApiService.fetchIdentity(_token!);
-            _displayName = identity.displayName;
-            _avatarUrl = identity.avatarUrl;
-            print('DisplayName récupéré: $_displayName');
-            print('AvatarUrl récupéré: $_avatarUrl');
-            notifyListeners();
-          } catch (e) {
-            print('Erreur lors de la récupération de l\'identité: $e');
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content:
-                      Text('Erreur lors de la récupération de l\'identité: $e'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
-          }
-        }
+        // Récupérer l'identité avec le nouveau service
+        final identity = await IdentityService.fetchIdentity(_token!);
+        _displayName = identity.displayName;
+        _avatarUrl = identity.avatarUrl;
+        print('DisplayName récupéré: $_displayName');
+        print('AvatarUrl récupéré: $_avatarUrl');
+        notifyListeners();
+
+        // Créer le compte SIP
+        await _createSipAccount(context, identity);
 
         return _token;
-      } else if (response.statusCode == 401) {
-        final responseData = jsonDecode(response.body);
-        throw Exception(responseData['error_description'] ?? 'NOT_AUTHORIZED');
-      } else if (response.statusCode == 400) {
-        throw Exception('NEED_EMAIL_VERIFICATION');
       } else {
-        throw Exception('Server Error: ${response.statusCode}');
+        print('Erreur d\'authentification: ${response.statusCode}');
+        print('Corps de l\'erreur: ${response.body}');
+        return null;
       }
     } catch (e) {
-      print('Erreur lors de la connexion: $e');
-      rethrow;
+      print('Exception lors de l\'authentification: $e');
+      return null;
+    }
+  }
+
+  Future<void> _createSipAccount(
+      BuildContext context, Identity identity) async {
+    try {
+      final accountsModel = context.read<AppAccountsModel>();
+
+      // Créer un nouveau compte SIP
+      final account = AccountModel();
+      account.sipServer = identity.domain;
+      account.sipExtension = identity.alternateLogin;
+      account.sipPassword = identity.accountSipPassword;
+      account.sipAuthId = '${identity.accountLogin}@${identity.domain}';
+      account.sipProxy = identity.sipAccessFqdn;
+      account.transport = SipTransport.udp;
+      account.expireTime = 300; // 5 minutes par défaut
+
+      // Ajouter le compte
+      await accountsModel.addAccount(account);
+      print('Compte SIP créé avec succès');
+    } catch (e) {
+      print('Erreur lors de la création du compte SIP: $e');
+      throw Exception('Impossible de créer le compte SIP: $e');
     }
   }
 

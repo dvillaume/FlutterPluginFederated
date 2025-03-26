@@ -36,6 +36,11 @@ class Identity {
   final String? avatarUrl;
   final String displayName;
   final Site site;
+  final String domain;
+  final String alternateLogin;
+  final String accountSipPassword;
+  final String accountLogin;
+  final String sipAccessFqdn;
 
   Identity({
     required this.id,
@@ -47,6 +52,11 @@ class Identity {
     this.avatarUrl,
     required this.displayName,
     required this.site,
+    required this.domain,
+    required this.alternateLogin,
+    required this.accountSipPassword,
+    required this.accountLogin,
+    required this.sipAccessFqdn,
   });
 
   factory Identity.fromJson(Map<String, dynamic> json) {
@@ -60,6 +70,11 @@ class Identity {
       avatarUrl: json['avatarUrl'],
       displayName: json['displayName'] ?? '',
       site: Site.fromJson(json['site'] ?? {}),
+      domain: json['domain'] ?? '',
+      alternateLogin: json['alternateLogin'] ?? '',
+      accountSipPassword: json['accountSipPassword'] ?? '',
+      accountLogin: json['accountLogin'] ?? '',
+      sipAccessFqdn: json['sipAccessFqdn'] ?? '',
     );
   }
 }
