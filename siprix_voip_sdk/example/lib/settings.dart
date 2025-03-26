@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 
 import 'package:siprix_voip_sdk/devices_model.dart';
 import 'package:siprix_voip_sdk/siprix_voip_sdk.dart';
+import 'auth_repository.dart';
+import 'login_page.dart';
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //SettingsPage - represents platfrom specific settings
@@ -31,6 +33,8 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final devices = context.watch<DevicesModel>();
+    final authRepository = context.watch<AuthRepository>();
+
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
@@ -51,37 +55,96 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: _buildBody(devices),
+            children: _buildBody(devices, authRepository),
           ),
         ),
       ),
     );
   }
 
-  List<Widget> _buildBody(DevicesModel devices) {
-    if (Platform.isIOS) {
-      return [
-        _buildInfoCard('Les paramètres iOS ne sont pas encore disponibles')
-      ];
-    } else if (Platform.isAndroid) {
-      return [
-        _buildSwitchCard(
-          'Exécuter le service téléphonique en mode premier plan',
-          devices.foregroundModeEnabled,
-          onSetForegroundMode,
-        ),
-      ];
-    } else {
-      return [
-        _buildDeviceSection('Périphériques audio/vidéo', [
-          _buildPlayoutDevicesDropDown(devices),
+  List<Widget> _buildBody(DevicesModel devices, AuthRepository authRepository) {
+    List<Widget> widgets = [];
+
+    // Section utilisateur
+    widgets.add(_buildUserSection(authRepository));
+    widgets.add(const SizedBox(height: 20));
+
+    widgets.add(_buildDeviceSection('Périphériques audio/vidéo', [
+      _buildPlayoutDevicesDropDown(devices),
+      const SizedBox(height: 16),
+      _buildRecordingDevicesDropDown(devices),
+      const SizedBox(height: 16),
+      _buildVideoDevicesDropDown(devices),
+    ]));
+
+    // Ajouter la section de déconnexion
+    widgets.add(const SizedBox(height: 20));
+    widgets.add(_buildLogoutSection());
+
+    return widgets;
+  }
+
+  Widget _buildUserSection(AuthRepository authRepository) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Utilisateur',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
+          ),
           const SizedBox(height: 16),
-          _buildRecordingDevicesDropDown(devices),
-          const SizedBox(height: 16),
-          _buildVideoDevicesDropDown(devices),
-        ]),
-      ];
-    }
+          Row(
+            children: [
+              authRepository.avatarUrl != null
+                  ? CircleAvatar(
+                      radius: 25,
+                      backgroundImage: NetworkImage(authRepository.avatarUrl!),
+                      onBackgroundImageError: (exception, stackTrace) {
+                        print('Erreur de chargement de l\'avatar: $exception');
+                      },
+                    )
+                  : const CircleAvatar(
+                      radius: 25,
+                      child: Icon(Icons.person),
+                    ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      authRepository.displayName ?? 'Non connecté',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: textColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildInfoCard(String message) {
@@ -236,6 +299,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildPlayoutDevicesDropDown(DevicesModel devices) {
+    print('Périphériques de sortie disponibles: ${devices.playout.length}');
+    devices.playout.forEach(
+        (device) => print('- ${device.name} (index: ${device.index})'));
     return _buildMediaDevicesDropDown(
       'Périphérique de sortie audio',
       devices.playout,
@@ -245,6 +311,10 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildRecordingDevicesDropDown(DevicesModel devices) {
+    print(
+        'Périphériques d\'enregistrement disponibles: ${devices.recording.length}');
+    devices.recording.forEach(
+        (device) => print('- ${device.name} (index: ${device.index})'));
     return _buildMediaDevicesDropDown(
       'Périphérique d\'enregistrement',
       devices.recording,
@@ -254,6 +324,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildVideoDevicesDropDown(DevicesModel devices) {
+    print('Périphériques vidéo disponibles: ${devices.video.length}');
+    devices.video.forEach(
+        (device) => print('- ${device.name} (index: ${device.index})'));
     return _buildMediaDevicesDropDown(
       'Périphérique vidéo',
       devices.video,
@@ -293,5 +366,63 @@ class _SettingsPageState extends State<SettingsPage> {
       content: Text(error.toString()),
       backgroundColor: Colors.red.shade400,
     ));
+  }
+
+  Widget _buildLogoutSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Session',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () async {
+              await context.read<AuthRepository>().logout();
+              if (mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => LoginPage()),
+                  (route) => false,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Se déconnecter',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

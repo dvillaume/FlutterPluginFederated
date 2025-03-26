@@ -24,156 +24,83 @@ import 'account_add.dart';
 import 'subscr_add.dart';
 import 'settings.dart';
 import 'home.dart';
+import 'login_page.dart';
+import 'auth_repository.dart';
+import 'services/api_service.dart' as api;
 
 void main() async {
-  // Configuration de la gestion des erreurs Flutter
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    debugPrint('FlutterError: ${details.exception}');
-    // En mode release, vous pourriez vouloir enregistrer cette erreur dans un service externe
-  };
-
-  //Wait while Firebase initialized
-  //await _initializeFCM();
-  debugPrint('main');
-
-  //Create models
-  LogsModel logsModel =
-      LogsModel(true); //Set 'false' when logs won't rendering on UI
-  CdrsModel cdrsModel =
-      CdrsModel(); //List of recent calls (Call Details Records)
-
-  DevicesModel devicesModel = DevicesModel(logsModel); //List of devices
-  NetworkModel networkModel = NetworkModel(logsModel); //Network state details
-  AppAccountsModel accountsModel =
-      AppAccountsModel(logsModel); //List of accounts
-  AppCallsModel callsModel =
-      AppCallsModel(accountsModel, logsModel, cdrsModel); //List of calls
-  SubscriptionsModel subscrModel = SubscriptionsModel<AppBlfSubscrModel>(
-      accountsModel,
-      AppBlfSubscrModel.fromJson,
-      logsModel); //List of subscriptions
-
-  //Run app
-  runApp(MultiProvider(
-    providers: [
-      ChangeNotifierProvider(create: (context) => accountsModel),
-      ChangeNotifierProvider(create: (context) => networkModel),
-      ChangeNotifierProvider(create: (context) => devicesModel),
-      ChangeNotifierProvider(create: (context) => callsModel),
-      ChangeNotifierProvider(create: (context) => subscrModel),
-      ChangeNotifierProvider(create: (context) => cdrsModel),
-      ChangeNotifierProvider(create: (context) => logsModel),
-    ],
-    child: const MyApp(),
-  ));
-}
-
-/*
-Future<void> _initializeFCM() async {
-  if(!Platform.isAndroid)  return;
-
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(//options: DefaultFirebaseOptions.currentPlatform,);
-    options: const FirebaseOptions(
-      apiKey: '...',            //Your apiKey here
-      appId: '...',             //Your appId here
-      messagingSenderId: '...', //Your senderId here
-      projectId: '...',         //Your projectId here
-      storageBucket: '...',     //Your storageBucket here
-    )
-  );
-  debugPrint('Firebase.initializeApp');
-
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-}
-
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  await Firebase.initializeApp(
-     options: const FirebaseOptions(
-      apiKey: '...',            //Your apiKey here
-      appId: '...',             //Your appId here
-      messagingSenderId: '...', //Your senderId here
-      projectId: '...',         //Your projectId here
-      storageBucket: '...',     //Your storageBucket here
-    )
-  );
-
-  //!!! This code is working in the background isolate!
-  //!!! When this method triggerer app is working in background (activity may not exist) or completely stopped
-  //!!! Code below initializes Siprix, adds saved accounts and refreshes registration (makes app ready to receive incoming call)
-
-  debugPrint("[!!!] Handling a background message id:'${message.messageId}' data:'${message.data}'");
-
-  try{
-    debugPrint("Initialize siprix");
-    _MyAppState._initializeSiprix();
-
-    debugPrint("Read and add accounts");
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String accJsonStr = prefs.getString('accounts') ?? '';
-    if(accJsonStr.isNotEmpty) {
-      AppAccountsModel tmpAccsModel = AppAccountsModel();
-      tmpAccsModel.loadFromJson(accJsonStr);
-      tmpAccsModel.refreshRegistration();
-    }
-  } on Exception catch (err) {
-      debugPrint('Error: ${err.toString()}');
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    await SiprixVoipSdk().initialize(InitData());
+    runApp(const MyApp());
+  } catch (e) {
+    debugPrint('Erreur lors de l\'initialisation: $e');
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Text('Erreur d\'initialisation: $e'),
+          ),
+        ),
+      ),
+    );
   }
 }
-*/
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
   static String _ringtonePath = "";
 
-  @override
-  State<MyApp> createState() => _MyAppState();
-
-  /// Returns ringtone's path saved on device
   static String getRingtonePath() => _ringtonePath;
 
-  /// Write ringtone file from asset to device
-  void writeRingtoneAsset() async {
-    _ringtonePath = await writeAssetAndGetFilePath("ringtone.mp3");
+  Future<void> writeRingtoneAsset() async {
+    try {
+      _ringtonePath = await writeAssetAndGetFilePath("ringtone.mp3");
+    } catch (e) {
+      debugPrint('Erreur lors de l\'écriture de la sonnerie: $e');
+    }
   }
 
-  /// Write file from assest to device and returns path to it
   static Future<String> writeAssetAndGetFilePath(String assetsFileName) async {
-    var homeFolder = await SiprixVoipSdk().homeFolder();
-    var filePath = '$homeFolder$assetsFileName';
+    try {
+      var homeFolder = await SiprixVoipSdk().homeFolder();
+      var filePath = '$homeFolder$assetsFileName';
 
-    var file = File(filePath);
-    var exists = file.existsSync();
-    debugPrint("writeAsset: '$filePath' exists:$exists");
-    if (exists) return filePath;
+      var file = File(filePath);
+      var exists = file.existsSync();
+      debugPrint("writeAsset: '$filePath' exists:$exists");
+      if (exists) return filePath;
 
-    final byteData = await rootBundle.load('assets/$assetsFileName');
-    await file.create(recursive: true);
-    file.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
-    return filePath;
+      final byteData = await rootBundle.load('assets/$assetsFileName');
+      await file.create(recursive: true);
+      await file.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
+      return filePath;
+    } catch (e) {
+      debugPrint('Erreur lors de l\'écriture du fichier: $e');
+      rethrow;
+    }
   }
 
-  ///returns path to folder when app stores recorded files
   static Future<String> getRecFilePath(String recFileName) async {
-    var homeFolder = await SiprixVoipSdk().homeFolder();
-    var filePath = '$homeFolder$recFileName';
-    return filePath;
+    try {
+      var homeFolder = await SiprixVoipSdk().homeFolder();
+      var filePath = '$homeFolder$recFileName';
+      return filePath;
+    } catch (e) {
+      debugPrint('Erreur lors de la récupération du chemin: $e');
+      rethrow;
+    }
   }
+
+  @override
+  State<MyApp> createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-
-    _initializeSiprix(context.read<LogsModel>());
-    widget
-        .writeRingtoneAsset(); //after initialize Siprix as uses its 'homeFolder'
-    _readSavedState();
+    widget.writeRingtoneAsset();
   }
 
   @override
@@ -190,19 +117,20 @@ class _MyAppState extends State<MyApp> {
       );
     };
 
-    return MaterialApp(
-      routes: <String, WidgetBuilder>{
-        SettingsPage.routeName: (BuildContext context) => const SettingsPage(),
-        AccountPage.routeName: (BuildContext context) => const AccountPage(),
-        SubscrAddPage.routeName: (BuildContext context) =>
-            const SubscrAddPage(),
-      },
-      home: kIsWeb ? const WebDemoPage() : const HomePage(),
-      title: 'Octovia',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-        useMaterial3: true,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthRepository()),
+        ChangeNotifierProvider(create: (_) => DevicesModel()),
+      ],
+      child: MaterialApp(
+        navigatorKey: api.navigatorKey,
+        title: 'Siprix VoIP SDK Demo',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+          visualDensity: VisualDensity.adaptivePlatformDensity,
+          useMaterial3: true,
+        ),
+        home: LoginPage(),
       ),
     );
   }
