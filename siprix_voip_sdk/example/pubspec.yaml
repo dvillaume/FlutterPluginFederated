@@ -17,6 +17,7 @@ dependencies:
   flutter:
     sdk: flutter
   http: ^1.2.1
+  uuid: ^4.3.3
 
   siprix_voip_sdk:
     # When depending on this package from a real application you should use:

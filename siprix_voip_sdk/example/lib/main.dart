@@ -26,14 +26,22 @@ import 'settings.dart';
 import 'home.dart';
 import 'login_page.dart';
 import 'auth_repository.dart';
+import 'services/installation_service.dart';
 
 void main() async {
+  // Initialiser Flutter
+  WidgetsFlutterBinding.ensureInitialized();
+
   // Configuration de la gestion des erreurs Flutter
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     debugPrint('FlutterError: ${details.exception}');
     // En mode release, vous pourriez vouloir enregistrer cette erreur dans un service externe
   };
+
+  // Initialiser l'installationId
+  final installationId = await InstallationService.getInstallationId();
+  debugPrint('Installation ID: $installationId');
 
   //Wait while Firebase initialized
   //await _initializeFCM();
